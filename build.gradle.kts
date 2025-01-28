@@ -22,6 +22,10 @@ dependencies {
     implementation("io.quarkus:quarkus-rest")
     testImplementation("io.quarkus:quarkus-junit5")
     testImplementation("io.rest-assured:rest-assured")
+    implementation("io.arrow-kt:arrow-core:1.2.1")
+    implementation("io.arrow-kt:arrow-fx-coroutines:1.2.1")
+
+    testImplementation("io.quarkus:quarkus-junit5")
 }
 
 group = "org.daas"
