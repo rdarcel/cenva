@@ -83,25 +83,60 @@ enum class SipMethod {
     MESSAGE,
     UPDATE;
 
+    /**
+     * Transform method to String
+     */
     override fun toString(): String {
         return name
+    }
+
+    companion object {
+        /**
+         * Get a SipMethod from a string
+         * @param method the string to parse
+         * @return the SipMethod
+         */
+        fun fromString(method: String): SipMethod? {
+            return values().find { it.name == method }
+        }
     }
 }
 
 /**
- * SIP URI as defined in RFC 3261
- * @param scheme The scheme (typically "sip" or "sips")
- * @param userInfo The user info part (optional)
- * @param host The host part
- * @param port The port (optional)
- * @param uriParams The URI parameters
- * @param headers The headers parameters
+ * Class representing a SIP URI
+ * @param scheme the scheme of the URI
+ * @param userInfo the user information
+ * @param password Optional password of the user
+ * @param host the host
+ * @param port the port
+ * @param uriParameters the URI parameters
+ * @param headers the headers
+ * @param phoneContext the phone context
+ * @param postDial the post dial 
+ * @param isdnSubaddress the ISDN subaddress
+ * 
  */
 data class SipUri(
     val scheme: String,
-    val userInfo: Option<String>,
-    val host: String,
-    val port: Option<Int>,
-    val uriParams: Map<String, Option<String>>,
-    val headers: Map<String, String>
+    val userInfo: Option<String>, 
+    val password: Option<String>,
+    val host: Option<String>, 
+    val port: Option<Int>, 
+    val uriParameters: Map<String, Option<String>>,
+    val headers: Map<String, String>, 
+    val phoneContext: Option<String>,
+    val postDial: Option<String>, 
+    val isdnSubaddress: Option<String> 
+) : SipObject()
+
+/**
+ * Represents a name-addr header field as defined in RFC 3261
+ * @param displayName Optional display name
+ * @param uri The SIP URI
+ * @param parameters Optional parameters
+ */
+data class NameAddr(
+    val displayName: Option<String>,
+    val uri: SipUri,
+    val parameters: Map<String, Option<String>>
 ) : SipObject()

@@ -11,6 +11,9 @@ import org.daas.dao.SipResponse
 
 import org.daas.dao.SipParseError
 
+
+import org.jboss.logging.Logger;
+
 /**
  * SIP parser Bean
  */
@@ -43,6 +46,8 @@ class SipParserService {
          * Regular expressions to parse SIP headers
          */
         private val headerLineRegex = """^([^:]+):\s*(.+)$""".toRegex()
+
+        private val log = Logger.getLogger("SipParserService") 
 
     }
     

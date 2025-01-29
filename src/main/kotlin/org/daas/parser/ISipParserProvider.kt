@@ -18,7 +18,7 @@ interface ISipParserProvider<SipObjectType : SipObject> {
      * @param message the message to parse
      * @return the parsed message or an error if the message is invalid
      */
-    fun parse(message: String): Either<SipParseError,SipObjectType: SipObject>
+    fun parse(message: String): Either<SipParseError,SipObjectType>
 
     /**
      * Serialize the SIP object to a string
