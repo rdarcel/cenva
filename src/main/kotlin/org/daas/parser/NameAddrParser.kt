@@ -17,8 +17,7 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
      * Regex for parsing name-addr fields
      */
     companion object {
-        private val NAME_ADDR_REGEX = """^(?:"([^"]*)")?[ ]*(?:<(.+)>|([^;> ]+))(?:[ ]*;(.*))?$""".toRegex()
-        private val PARAM_REGEX = """([^=;]+)(?:=([^;]+))?""".toRegex()
+        private val NAME_ADDR_REGEX = """^(?:\"?([^\"<]*)\"?)?[ ]*(?:<(.+)>|([^;<> ]+))$""".toRegex()
     }
 
     /**
@@ -35,7 +34,7 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
             val match = NAME_ADDR_REGEX.find(message.trim()) 
                 ?: return Either.Left(SipParseError.InvalidFormat("Invalid name-addr format"))
 
-            val (displayName, bracketedUri, unbracketedUri, params) = match.destructured
+            val (displayName, bracketedUri, unbracketedUri) = match.destructured
 
             // Parse the URI part
             val uriString = bracketedUri.ifEmpty { unbracketedUri }
@@ -44,19 +43,11 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
             when (uriResult) {
                 is Either.Left -> return Either.Left(SipParseError.InvalidUri("Invalid URI in name-addr: ${uriResult.value.message}"))
                 is Either.Right -> {
-                    // Parse parameters if present
-                    val parameters = mutableMapOf<String, Option<String>>()
-                    if (params.isNotEmpty()) {
-                        PARAM_REGEX.findAll(params).forEach { paramMatch ->
-                            val (name, value) = paramMatch.destructured
-                            parameters[name] = if (value.isNotEmpty()) Some(value) else None
-                        }
-                    }
+         
 
                     Either.Right(NameAddr(
                         displayName = if (displayName.isNotEmpty()) Some(displayName) else None,
-                        uri = uriResult.value,
-                        parameters = parameters
+                        uri = uriResult.value
                     ))
                 }
             }
@@ -81,11 +72,7 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
         // Add URI
         sb.append("<").append(sipUriParser.toString(obj.uri)).append(">")
 
-        // Add parameters
-        obj.parameters.forEach { (key, value) ->
-            sb.append(";").append(key)
-            value.map { sb.append("=").append(it) }
-        }
+   
 
         return sb.toString()
     }

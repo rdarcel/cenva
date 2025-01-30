@@ -85,12 +85,8 @@ class SipUriParser : ISipParserProvider<SipUri> {
 
         TEL_PARAM_REGEX.findAll(paramsString).forEach { paramMatch ->
             val (name, value) = paramMatch.destructured
-            when (name) {
-                "phone-context" -> phoneContext = Some(value)
-                "postd" -> postDial = Some(value)
-                "isub" -> isdnSubaddress = Some(value)
-                else -> parameters[name] = if (value.isNotEmpty()) Some(value) else None
-            }
+            parameters[name] = if (value.isNotEmpty()) Some(value) else None
+            
         }
 
         return Either.Right(SipUri(
@@ -100,10 +96,7 @@ class SipUriParser : ISipParserProvider<SipUri> {
             host = None,
             port = None,
             uriParameters = parameters,
-            headers = mapOf(),
-            phoneContext = phoneContext,
-            postDial = postDial,
-            isdnSubaddress = isdnSubaddress
+            headers = mapOf()
         ))
     }
 
@@ -152,10 +145,7 @@ class SipUriParser : ISipParserProvider<SipUri> {
             host = host,
             port = port,
             uriParameters = parameters,
-            headers = headers,
-            phoneContext = None,
-            postDial = None,
-            isdnSubaddress = None
+            headers = headers
         ))
     }
 
@@ -182,11 +172,6 @@ class SipUriParser : ISipParserProvider<SipUri> {
         
         // Add phone number
         uri.userInfo.map { sb.append(it) }
-        
-        // Add parameters
-        uri.phoneContext.map { sb.append(";phone-context=").append(it) }
-        uri.postDial.map { sb.append(";postd=").append(it) }
-        uri.isdnSubaddress.map { sb.append(";isub=").append(it) }
         
         // Add other parameters
         uri.uriParameters.forEach { (key, value) ->

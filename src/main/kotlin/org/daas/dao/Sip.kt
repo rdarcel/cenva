@@ -123,10 +123,7 @@ data class SipUri(
     val host: Option<String>, 
     val port: Option<Int>, 
     val uriParameters: Map<String, Option<String>>,
-    val headers: Map<String, String>, 
-    val phoneContext: Option<String>,
-    val postDial: Option<String>, 
-    val isdnSubaddress: Option<String> 
+    val headers: Map<String, String>
 ) : SipObject()
 
 /**
@@ -137,6 +134,17 @@ data class SipUri(
  */
 data class NameAddr(
     val displayName: Option<String>,
-    val uri: SipUri,
+    val uri: SipUri
+) : SipObject()
+
+/**
+ * Represents a From header field value as defined in RFC 3261
+ * @param nameAddr The name-addr or addr-spec part
+ * @param tag Optional tag parameter
+ * @param parameters Additional header parameters
+ */
+data class FromHeader(
+    val nameAddr: NameAddr,
+    val tag: Option<String>,
     val parameters: Map<String, Option<String>>
 ) : SipObject()
