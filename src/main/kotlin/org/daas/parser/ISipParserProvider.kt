@@ -1,7 +1,7 @@
 package org.daas.parser
 
-import org.daas.dao.SipParseError
-import org.daas.dao.SipObject
+import org.daas.dao.sip.SipParseError
+import org.daas.dao.sip.SipObject
 import arrow.core.Either
 
 /**

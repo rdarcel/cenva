@@ -4,15 +4,16 @@ import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import org.daas.dao.SipUri
-import org.daas.dao.SipParseError
+import org.daas.dao.sip.SipUri
+import org.daas.dao.sip.SipParseError
 
 import org.jboss.logging.Logger;
 
 /**
  * Procvides a parser for SIP URIs
+ * @param allowMail if true, allows parsing of mailto URIs
  */
-class SipUriParser : ISipParserProvider<SipUri> {
+class SipUriParser(val allowMail: Boolean = false) : ISipParserProvider<SipUri> {
     /**
      * Name of the filter
      */
@@ -35,9 +36,12 @@ class SipUriParser : ISipParserProvider<SipUri> {
         /**
          * Regex for SIP URI
          */
-        private val SIP_URI_REGEX = """^^(sips?):(?:([a-zA-Z0-9\-\_\.\!\~\*\'\(\)&=\+\$,;\?\/\%]+)(:[a-zA-Z0-9\-\_\.\!\~\*\'\(\)&=\+\$,;\?\/\%]+)?@)?([[a-zA-Z0-9\-\_\.]]+)(?::(\d+))?(?:;([^?]*))?(?:\?(.+))?$""".toRegex()
-        //"""^(sips?):(?:([^@]+)@)?([^:;?]+)(?::(\d+))?(?:;([^?]*))?(?:\?(.+))?$"""
-        //^(sips?):(?:([a-zA-Z0-9\-\_\.\!\~\*\'\(\)&=\+\$,;\?\/\%:]+)@)?([^:;?]+)(?::(\d+))?(?:;([^?]*))?(?:\?(.+))?$
+        private val SIP_URI_REGEX = """^(sips?):(?:([a-zA-Z0-9\-\_\.\!\~\*\'\(\)&=\+\$,;\?\/\%]+)(:[a-zA-Z0-9\-\_\.\!\~\*\'\(\)&=\+\$,;\?\/\%]+)?@)?([[a-zA-Z0-9\-\_\.]]+)(?::(\d+))?(?:;([^?]*))?(?:\?(.+))?$""".toRegex()
+
+        /**
+         * Regex for MAILTO URI
+         */
+        private val MAILTO_URI_REGEX = """^mailto:([a-zA-Z0-9\-\_\.\!\~\*\'\(\)&=\+\$,;\?\/\%]+)@([[a-zA-Z0-9\-\_\.]]+)\??(?:([^?]*))$""".toRegex()
 
         /**
          * Regex for SIP URI parameters
@@ -49,6 +53,9 @@ class SipUriParser : ISipParserProvider<SipUri> {
          */
         private val HEADER_REGEX = """([^=&]+)=([^&]+)""".toRegex()
 
+        /**
+         * Logger
+         */
         private val log = Logger.getLogger(SipUriParser::class.java)
     }
 
@@ -62,11 +69,44 @@ class SipUriParser : ISipParserProvider<SipUri> {
             when {
                 message.startsWith("tel:") -> parseTelUri(message)
                 message.startsWith("sip:") || message.startsWith("sips:") -> parseSipUri(message)
+                message.startsWith("mailto:") && allowMail -> parseMailtoUri(message)
                 else -> Either.Left(SipParseError.InvalidFormat("Invalid URI scheme"))
             }
         } catch (e: Exception) {
             Either.Left(SipParseError.InvalidFormat(e.message ?: "Unknown parsing error"))
         }
+    }
+
+    /**
+     * Parse a MAILTO URI
+     * @param uri the MAILTO URI to parse
+     * @return the parsed SIP URI or an error if the URI is invalid
+     */
+    private fun parseMailtoUri(uri: String): Either<SipParseError, SipUri> {
+        val match = MAILTO_URI_REGEX.find(uri) ?: return Either.Left(SipParseError.InvalidFormat("Invalid MAILTO URI format"))
+        val (userStr, hostStr, headersStr) = match.destructured
+
+        // For a mail user & host must not be empty
+        if(userStr.isEmpty()) return Either.Left(SipParseError.InvalidFormat("Invalid MAILTO URI format: user is required"))
+        if(hostStr.isEmpty()) return Either.Left(SipParseError.InvalidFormat("Invalid MAILTO URI format: host is required"))
+
+        val headers = mutableMapOf<String, String>()
+        if (headersStr.isNotEmpty()) {
+            HEADER_REGEX.findAll(headersStr).forEach { headerMatch ->
+                val (name, value) = headerMatch.destructured
+                headers[name] = value
+            }
+        }
+
+        return Either.Right(SipUri(
+            scheme = "mailto",
+            userInfo = Some(userStr.trim()),
+            password = None,
+            host = Some(hostStr.trim()),
+            port = None,
+            uriParameters = mapOf(),
+            headers = headers
+        ))
     }
 
     /**
@@ -79,9 +119,7 @@ class SipUriParser : ISipParserProvider<SipUri> {
         val (number, paramsString) = match.destructured
         
         val parameters = mutableMapOf<String, Option<String>>()
-        var phoneContext = Option.fromNullable(null as String?)
-        var postDial = Option.fromNullable(null as String?)
-        var isdnSubaddress = Option.fromNullable(null as String?)
+
 
         TEL_PARAM_REGEX.findAll(paramsString).forEach { paramMatch ->
             val (name, value) = paramMatch.destructured
@@ -91,7 +129,7 @@ class SipUriParser : ISipParserProvider<SipUri> {
 
         return Either.Right(SipUri(
             scheme = "tel",
-            userInfo = Some(number),
+            userInfo = Some(number.trim()),
             password = None,
             host = None,
             port = None,
@@ -109,13 +147,12 @@ class SipUriParser : ISipParserProvider<SipUri> {
         val match = SIP_URI_REGEX.find(uri) ?: return Either.Left(SipParseError.InvalidFormat("Invalid SIP URI format"))
         val (scheme, user, passwordStr, hostStr, portStr, paramsStr, headersStr) = match.destructured
 
-        val userInfo = if (user.isNotEmpty()) Some(user) else None
-        //if(userInfo.isNone()) return Either.Left(SipParseError.InvalidFormat("Invalid SIP URI format: user is required"))
+        val userInfo = if (user.isNotEmpty()) Some(user.trim()) else None
 
         //Not very nice to remove the : needs to be changed later
-        val password = if (passwordStr.isNotEmpty()) Some(passwordStr.drop(1)) else None
+        val password = if (passwordStr.isNotEmpty()) Some(passwordStr.drop(1).trim()) else None
 
-        val host = if(hostStr.isNotEmpty()) Some(hostStr) else None
+        val host = if(hostStr.isNotEmpty()) Some(hostStr.trim()) else None
         if(host.isNone()) return Either.Left(SipParseError.InvalidFormat("Invalid SIP URI format: host is required"))
         val port = if (portStr.isNotEmpty()) Some(portStr.toInt()) else None
 

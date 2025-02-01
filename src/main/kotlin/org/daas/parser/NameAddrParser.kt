@@ -4,9 +4,9 @@ import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import org.daas.dao.NameAddr
-import org.daas.dao.SipParseError
-import org.daas.dao.SipUri
+import org.daas.dao.sip.NameAddr
+import org.daas.dao.sip.SipParseError
+import org.daas.dao.sip.SipUri
 
 /**
  * Parser for name-addr header fields according to RFC 3261
@@ -17,7 +17,17 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
      * Regex for parsing name-addr fields
      */
     companion object {
-        private val NAME_ADDR_REGEX = """^(?:\"?([^\"<]*)\"?)?[ ]*(?:<(.+)>|([^;<> ]+))$""".toRegex()
+        /**
+         * Regex for parsing name-addr fields with display name, URI and parameters.
+         * Group 1: Display name (optionals, could be with double quote)
+         * Group 2: URI 
+
+         */
+        private val NAME_ADDR_REGEX = """^(?:\"?([^\"<]*)\"?\s*)?<([^>]+)>$""".toRegex()
+
+
+
+
     }
 
     /**
@@ -31,14 +41,13 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
      */
     override fun parse(message: String): Either<SipParseError, NameAddr> {
         return try {
-            val match = NAME_ADDR_REGEX.find(message.trim()) 
-                ?: return Either.Left(SipParseError.InvalidFormat("Invalid name-addr format"))
+            val match = NAME_ADDR_REGEX.find(message) 
+                ?: return Either.Left(SipParseError.InvalidFormat("Invalid name-addr format for ${message}"))
 
-            val (displayName, bracketedUri, unbracketedUri) = match.destructured
+            val (displayName, uri) = match.destructured
 
             // Parse the URI part
-            val uriString = bracketedUri.ifEmpty { unbracketedUri }
-            val uriResult = sipUriParser.parse(uriString)
+            val uriResult = sipUriParser.parse(uri)
 
             when (uriResult) {
                 is Either.Left -> return Either.Left(SipParseError.InvalidUri("Invalid URI in name-addr: ${uriResult.value.message}"))
@@ -46,7 +55,7 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
          
 
                     Either.Right(NameAddr(
-                        displayName = if (displayName.isNotEmpty()) Some(displayName) else None,
+                        displayName = if (displayName.isNotEmpty()) Some(displayName.trim()) else None,
                         uri = uriResult.value
                     ))
                 }

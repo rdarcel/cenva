@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.daas.parser.SipParserService
-import org.daas.dao.SipRequest
-import org.daas.dao.SipResponse
-import org.daas.dao.SipParseError
+import org.daas.dao.sip.SipRequest
+import org.daas.dao.sip.SipResponse
+import org.daas.dao.sip.SipParseError
 import jakarta.inject.Inject
 
 

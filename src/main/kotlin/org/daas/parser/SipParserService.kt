@@ -5,11 +5,11 @@ import arrow.core.left
 import arrow.core.right
 import jakarta.enterprise.context.ApplicationScoped
 
-import org.daas.dao.SipMessage
-import org.daas.dao.SipRequest
-import org.daas.dao.SipResponse
+import org.daas.dao.sip.SipMessage
+import org.daas.dao.sip.SipRequest
+import org.daas.dao.sip.SipResponse
 
-import org.daas.dao.SipParseError
+import org.daas.dao.sip.SipParseError
 
 
 import org.jboss.logging.Logger;
