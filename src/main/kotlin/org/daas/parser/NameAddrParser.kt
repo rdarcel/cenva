@@ -19,11 +19,12 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
     companion object {
         /**
          * Regex for parsing name-addr fields with display name, URI and parameters.
-         * Group 1: Display name (optionals, could be with double quote)
+         * Group 1: Display name (optionals, with double quote)
+         * Group 2 : Display name without quote (optional)
          * Group 2: URI 
 
          */
-        private val NAME_ADDR_REGEX = """^(?:\"?([^\"<]*)\"?\s*)?<([^>]+)>$""".toRegex()
+        private val NAME_ADDR_REGEX = """^(?:(?<!\\)"((?:\\.|[^"\\])*)?(?<!\\)"|([^ <]*))[ ]*<([^>]*)>$""".toRegex()
 
 
 
@@ -44,7 +45,10 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
             val match = NAME_ADDR_REGEX.find(message) 
                 ?: return Either.Left(SipParseError.InvalidFormat("Invalid name-addr format for ${message}"))
 
-            val (displayName, uri) = match.destructured
+            val (displayNameWithQuote, displayNameWithoutQuote, uri) = match.destructured
+
+            var displayName = if(displayNameWithQuote.isNotEmpty()) displayNameWithQuote else displayNameWithoutQuote
+            displayName = displayName.replace("\\\"", "\"")
 
             // Parse the URI part
             val uriResult = sipUriParser.parse(uri)

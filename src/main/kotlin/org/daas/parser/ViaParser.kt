@@ -19,7 +19,12 @@ class ViaParser : ISipParserProvider<ViaHeader> {
         private val log = Logger.getLogger(ViaParser::class.java)
         
         // Regex to parse Via header: protocol/version/transport host[:port][;parameters]
-        private val VIA_REGEX = """^([^/\s]+)/([^/\s]+)/([^\s]+)\s+([^:;\s]+)(?::(\d+))?(?:\s+)?(?:;(.*))?$""".toRegex()
+        private val VIA_REGEX = """^([^/\s]+)/([^/\s]+)/([^\s]+)\s+(\[(?:[^\]]*)]|(?:(?:(?:25[0-5]|(?:2[0-4]|1\d|[1-9]|)\d)\.?\b){4})|(?:(?:(?!-:)[A-Za-z0-9\-]{1,255}(?<!-:)\.)+[A-Za-z]{2,6}))(?::(\d+))?(?:\s+)?(?:;(.*))?$""".toRegex()
+
+        //^([^/\s]+)/([^/\s]+)/([^\s]+)\s+([^:;\s]+)(?::(\d+))?(?:\s+)?(?:;(.*))?$
+        //^([^/\s]+)/([^/\s]+)/([^\s]+)\s+(\[(?:[^\]]*)]|(?:(?:(?:25[0-5]|(?:2[0-4]|1\d|[1-9]|)\d)\.?\b){4})|(?:(?:(?!-)[A-Za-z0–9-]{1,63}(?<!-)\.)+[A-Za-z]{2,6}))(?::(\d+))?(?:\s+)?(?:;(.*))?$
+        
+    
         
         // Regex for Via parameters
         private val PARAM_REGEX = """([^;=]+)(?:=([^;]+))?""".toRegex()

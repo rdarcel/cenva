@@ -93,4 +93,19 @@ class TestParserSipNameAddr {
             assertEquals(Some("example.com"), it.uri.host)
         }
     }
+
+    /**
+     * Test case with a display name containing escaped quotes
+     */
+    @Test
+    fun testNameAddrWithEscaping(){
+        val result = nameAddrParser.parse("\"John \\\" Doe\" <sip:john@example.com>")
+        assertTrue(result.isRight(), "Should parse name-addr with escaping in display name")
+        result.map { found ->
+            assertEquals(Some("John \" Doe"), found.displayName)
+            assertEquals("sip", found.uri.scheme)
+            assertEquals(Some("john"), found.uri.userInfo)
+            assertEquals(Some("example.com"), found.uri.host)
+        }
+    }
 }

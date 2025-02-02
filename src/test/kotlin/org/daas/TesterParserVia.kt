@@ -63,7 +63,7 @@ class TestParserVia {
      * RFC 3261 supports IPv6 addresses
      * Removing test for now
      */
-    /**
+    
     @Test
     fun testViaWithIPv6() {
         val result = viaParser.parse("SIP/2.0/UDP [2001:db8::9:1]:5060;branch=z9hG4bKna998sk")
@@ -73,7 +73,7 @@ class TestParserVia {
             assertEquals(Some(5060), it.port)
         }
     }
-**/
+
     /**
      * Test Via with rport parameter without value
      * RFC 3581 allows empty rport parameter

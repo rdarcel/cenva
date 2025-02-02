@@ -110,3 +110,19 @@ data class ViaHeader(
     val parameters: Map<String, Option<String>>,
     val branch: Option<String>
 ) : SipObject()
+
+
+/**
+ * Data class représentant le header SIP Content-Type.
+ * RFC 3261 et gestion du multipart et des paramètres éventuels.
+ *
+ * @param type le type MIME (ex: "application", "multipart")
+ * @param subType le sous-type MIME (ex: "sdp", "related")
+ * @param parameters les paramètres optionnels (ex: charset, boundary, etc.)
+ */
+data class ContentTypeHeader(
+    val type: String,
+    val subType: String,
+    val parameters: Map<String, Option<String>>
+) : SipObject()
+
