@@ -1,8 +1,8 @@
-package org.daas
+package org.cenva
 
 import io.quarkus.test.junit.QuarkusTest
-import org.daas.parser.NameAddrParser
-import org.daas.parser.SipUriParser
+import org.cenva.parser.NameAddrParser
+import org.cenva.parser.SipUriParser
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import arrow.core.Some

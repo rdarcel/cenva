@@ -215,14 +215,6 @@ private-prefix        = (%x21-22 / %x24-27 / %x2C / %x2F / %x3A /
                         *(%x21-3A / %x3C-7E)
                         ; Characters in URLs must follow escaping rules
                         ; as explained in [RFC2396]
-
-
-
-Vaha-Sipila                 Standards Track                     [Page 4]
-
-RFC 2806                URLs for Telephone Calls              April 2000
-
-
                         ; See sections 1.2 and 2.5.2
 service-provider      = ";" provider-tag "=" provider-hostname
 provider-tag          = "tsp"

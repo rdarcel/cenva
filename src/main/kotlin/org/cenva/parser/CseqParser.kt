@@ -1,17 +1,17 @@
-package org.daas.parser
+package org.cenva.parser
 
 import arrow.core.Either
-import org.daas.dao.sip.SipMethod
-import org.daas.dao.sip.SipObject
-import org.daas.dao.sip.SipParseError
-import org.daas.dao.sip.CSeqHeader
+import org.cenva.dao.sip.SipMethod
+import org.cenva.dao.sip.SipObject
+import org.cenva.dao.sip.SipParseError
+import org.cenva.dao.sip.CSeqHeader
 import org.jboss.logging.Logger
 
 
 /**
  * Parser for CSeq header fields as specified in RFC 3261
  */
-class CSeqParser : ISipParserProvider<CSeqHeader> {
+class CSeqParser(private val sipMethodParser : SipMethodParser) : ISipParserProvider<CSeqHeader> {
 
     companion object {
         private val log = Logger.getLogger(CSeqParser::class.java)
@@ -19,8 +19,6 @@ class CSeqParser : ISipParserProvider<CSeqHeader> {
         // CSeq format: sequence-number LWS Method
         private val CSEQ_REGEX = """^\s*(\d+)\s+([A-Z][A-Z0-9]*)\s*$""".toRegex()
     }
-
-    override fun fieldName(): String = "CSeq"
 
     /**
      * Parse a CSeq header field
@@ -38,10 +36,12 @@ class CSeqParser : ISipParserProvider<CSeqHeader> {
             if(sequenceNumber > 2147483648) {
                 return Either.Left(SipParseError.InvalidFormat("Invalid sequence number (bigger than 2^31) in CSeq: $seqNumStr"))
             }
-            val method = SipMethod.fromString(methodStr) 
-                ?: return Either.Left(SipParseError.InvalidFormat("Invalid method in CSeq: $methodStr"))
-
-            return Either.Right(CSeqHeader(sequenceNumber, method))
+            val method = sipMethodParser.parse(methodStr) 
+            return when(method) {
+                is Either.Left -> return Either.Left(SipParseError.InvalidFormat("Invalid method in CSeq: $methodStr"))
+                is Either.Right -> Either.Right(CSeqHeader(sequenceNumber, method.value))
+            }
+                 
         } catch (e: NumberFormatException) {
             return Either.Left(SipParseError.InvalidFormat("Invalid sequence number in CSeq: $seqNumStr"))
         }

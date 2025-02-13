@@ -1,18 +1,14 @@
-package org.daas.parser
+package org.cenva.parser
 
-import org.daas.dao.sip.SipParseError
-import org.daas.dao.sip.SipObject
+import org.cenva.dao.sip.SipParseError
+import org.cenva.dao.sip.SipObject
 import arrow.core.Either
 
 /**
  * Interface to be implemented by the SIP parser
  */
 interface ISipParserProvider<SipObjectType : SipObject> {
-    /**
-     * The SIP field name header (VIA, PAI, etc) or part of the request
-     */
-    fun fieldName(): String
-    
+ 
     /**
      * Parse a SIP message
      * @param message the message to parse

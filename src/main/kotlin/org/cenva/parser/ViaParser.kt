@@ -1,12 +1,12 @@
-package org.daas.parser
+package org.cenva.parser
 
 import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import org.daas.dao.sip.SipObject
-import org.daas.dao.sip.SipParseError
-import org.daas.dao.sip.ViaHeader
+import org.cenva.dao.sip.SipObject
+import org.cenva.dao.sip.SipParseError
+import org.cenva.dao.sip.ViaHeader
 import org.jboss.logging.Logger
 
 
@@ -31,11 +31,6 @@ class ViaParser : ISipParserProvider<ViaHeader> {
 
 
     }
-
-    /**
-     * Define the name of the field
-     */
-    override fun fieldName(): String = "Via"
 
     /**
      * Parse a Via header field

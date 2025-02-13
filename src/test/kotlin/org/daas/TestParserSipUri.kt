@@ -1,10 +1,10 @@
-package org.daas
+package org.cenva
 
 import arrow.core.None
 import arrow.core.Some
 import io.quarkus.test.junit.QuarkusTest
-import org.daas.dao.sip.SipParseError
-import org.daas.parser.SipUriParser
+import org.cenva.dao.sip.SipParseError
+import org.cenva.parser.SipUriParser
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

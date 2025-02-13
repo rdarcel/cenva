@@ -1,13 +1,13 @@
-package org.daas.parser
+package org.cenva.parser
 
 import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
 import arrow.core.getOrElse
-import org.daas.dao.sip.SipObject
-import org.daas.dao.sip.SipParseError
-import org.daas.dao.sip.ContentTypeHeader
+import org.cenva.dao.sip.SipObject
+import org.cenva.dao.sip.SipParseError
+import org.cenva.dao.sip.ContentTypeHeader
 
 
 /**
@@ -15,7 +15,7 @@ import org.daas.dao.sip.ContentTypeHeader
  */
 class ContentTypeParser : ISipParserProvider<ContentTypeHeader> {
     
-    override fun fieldName(): String = "Content-Type"
+
 
     // Regex pour parser le type/subtype et la partie paramètres
     private val mainRegex = Regex("""^\s*([^/\s]+)\s*/\s*([^;\s]+)(?:\s*;\s*(.*))?$""")
@@ -30,7 +30,7 @@ class ContentTypeParser : ISipParserProvider<ContentTypeHeader> {
      */
     override fun parse(message: String): Either<SipParseError, ContentTypeHeader> {
         if (message.isBlank()) {
-            return Either.Left(SipParseError.EmptyMessage)
+            return Either.Left(SipParseError.EmptyMessage("Content-Type header field is empty"))
         }
         
         val mainMatch = mainRegex.find(message)

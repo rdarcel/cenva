@@ -1,12 +1,12 @@
-package org.daas.parser
+package org.cenva.parser
 
 import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import org.daas.dao.sip.NameAddr
-import org.daas.dao.sip.SipParseError
-import org.daas.dao.sip.SipUri
+import org.cenva.dao.sip.NameAddr
+import org.cenva.dao.sip.SipParseError
+import org.cenva.dao.sip.SipUri
 
 /**
  * Parser for name-addr header fields according to RFC 3261
@@ -31,10 +31,6 @@ class NameAddrParser(private val sipUriParser: SipUriParser) : ISipParserProvide
 
     }
 
-    /**
-     * Define the name of the field
-     */
-    override fun fieldName(): String = "name-addr"
 
     /**
      * Parse a name-addr field

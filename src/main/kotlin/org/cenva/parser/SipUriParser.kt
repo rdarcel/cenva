@@ -1,11 +1,11 @@
-package org.daas.parser
+package org.cenva.parser
 
 import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import org.daas.dao.sip.SipUri
-import org.daas.dao.sip.SipParseError
+import org.cenva.dao.sip.SipUri
+import org.cenva.dao.sip.SipParseError
 
 import org.jboss.logging.Logger;
 
@@ -14,19 +14,25 @@ import org.jboss.logging.Logger;
  * @param allowMail if true, allows parsing of mailto URIs
  */
 class SipUriParser(val allowMail: Boolean = false) : ISipParserProvider<SipUri> {
-    /**
-     * Name of the filter
-     */
-    override fun fieldName(): String = "uri"
 
     /**
      * Reference the regex to be used to parse
      */
     companion object {
-        /**
-         * Regex for TEL URI
+      /**
+         * Regex for TEL URI as defined in RFC 3966.
+         *
+         * Breakdown:
+         *  - (^tel:)         : Ensures the string starts with "tel:".
+         *  - ([+\dA-Za-z\-\.\*#]+)
+         *                     : Captures the telephone-subscriber part which may be a global number (starting with '+')
+         *                       or a local number containing digits and allowed punctuation.
+         *  - (?:;([^;=]+(?:=[^;]+)?(?:;[^;=]+(?:=[^;]+)?)*))?
+         *                     : Optionally captures parameters without including the first ';'. Each parameter
+         *                       matches the pattern where its name and optional value do not include ';' or '='.
+         *  - ($)             : End of string.
          */
-        private val TEL_URI_REGEX = """^tel:([^;]+)(.*)$""".toRegex()
+        private val TEL_URI_REGEX = """^tel:([+\dA-Za-z\-\.\*#]+)(?:;([^;=]+(?:=[^;]+)?(?:;[^;=]+(?:=[^;]+)?)*))?$""".toRegex()
 
         /** 
          * Regex for TEL URI parameters
@@ -42,6 +48,8 @@ class SipUriParser(val allowMail: Boolean = false) : ISipParserProvider<SipUri> 
          * Regex for MAILTO URI
          */
         private val MAILTO_URI_REGEX = """^mailto:([a-zA-Z0-9\-\_\.\!\~\*\'\(\)&=\+\$,;\?\/\%]+)@([[a-zA-Z0-9\-\_\.]]+)\??(?:([^?]*))$""".toRegex()
+
+  
 
         /**
          * Regex for SIP URI parameters

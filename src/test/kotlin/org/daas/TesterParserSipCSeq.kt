@@ -1,16 +1,15 @@
 package org.daas
 
 import io.quarkus.test.junit.QuarkusTest
-import org.daas.dao.sip.CSeqHeader
-import org.daas.dao.sip.SipMethod
-import org.daas.parser.CSeqParser
+import org.cenva.dao.sip.*
+import org.cenva.parser.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 
 @QuarkusTest
 class TestParserSipCSeq {
 
-    private val cseqParser = CSeqParser()
+    private val cseqParser = CSeqParser(SipMethodParser())
 
     /**
      * Test basic CSeq header with INVITE method
@@ -22,7 +21,7 @@ class TestParserSipCSeq {
         assertTrue(result.isRight())
         result.map { 
             assertEquals(1L, it.sequenceNumber)
-            assertEquals(SipMethod.INVITE, it.method)
+            assertEquals(SipMethodValue.INVITE, it.method.method)
         }
     }
 
@@ -36,7 +35,7 @@ class TestParserSipCSeq {
         assertTrue(result.isRight())
         result.map {
             assertEquals(2147483647L, it.sequenceNumber)
-            assertEquals(SipMethod.REGISTER, it.method)
+            assertEquals(SipMethodValue.REGISTER, it.method.method)
         }
     }
 
@@ -50,7 +49,7 @@ class TestParserSipCSeq {
         assertTrue(result.isRight())
         result.map {
             assertEquals(42L, it.sequenceNumber)
-            assertEquals(SipMethod.SUBSCRIBE, it.method)
+            assertEquals(SipMethodValue.SUBSCRIBE, it.method.method)
         }
     }
 
@@ -94,7 +93,7 @@ class TestParserSipCSeq {
         assertTrue(result.isRight())
         result.map {
             assertEquals(2L, it.sequenceNumber)
-            assertEquals(SipMethod.BYE, it.method)
+            assertEquals(SipMethodValue.BYE, it.method.method)
         }
     }
 
@@ -108,7 +107,7 @@ class TestParserSipCSeq {
         assertTrue(result.isRight())
         result.map {
             assertEquals(0L, it.sequenceNumber)
-            assertEquals(SipMethod.OPTIONS, it.method)
+            assertEquals(SipMethodValue.OPTIONS, it.method.method)
         }
     }
 
@@ -122,7 +121,7 @@ class TestParserSipCSeq {
         assertTrue(result.isRight())
         result.map {
             assertEquals(1493L, it.sequenceNumber)
-            assertEquals(SipMethod.CANCEL, it.method)
+            assertEquals(SipMethodValue.CANCEL, it.method.method)
         }
     }
 

@@ -1,4 +1,4 @@
-package org.daas.dao.sip
+package org.cenva.dao.sip
 
 import arrow.core.Option
 
@@ -88,7 +88,7 @@ data class CSeqHeader(
  * @param identifier The local identifier
  * @param host Optional host where the identifier was created
  */
-data class CallId(
+data class CallIdHeader(
     val identifier: String,
     val host: Option<String>
 ) : SipObject()
