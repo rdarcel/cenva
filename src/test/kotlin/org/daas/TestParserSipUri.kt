@@ -82,6 +82,7 @@ class TestParserSipUri {
         result.map {
             assertEquals("tel", it.scheme, "Test on tel uri scheme parsed correctly")
             assertEquals(Some("7042"), it.userInfo, "Test on tel uri user info parsed correctly")
+            assertEquals(1,it.uriParameters.size, "Uri parameters size should be 1")
             assertEquals(
                     Some("example.com"),
                     it.uriParameters["phone-context"],
@@ -196,6 +197,8 @@ class TestParserSipUri {
         val result = parser.parse("tel:+1-201-555-0123;isub=1234")
         assertTrue(result.isRight(), "Test on tel uri with isub works")
         result.map {
+            it.userInfo.map { ui -> assertEquals("+1-201-555-0123", ui, "User info should be +1-201-555-0123") }
+            assertEquals(1,it.uriParameters.size, "Uri parameters size should be 1")
             assertEquals(
                     Some("1234"),
                     it.uriParameters["isub"],
@@ -208,8 +211,11 @@ class TestParserSipUri {
     @Test
     fun testTelUriWithPostd() {
         val result = parser.parse("tel:+1-201-555-0123;postd=pp22")
+        
         assertTrue(result.isRight(), "Test on tel uri with postd works")
         result.map {
+            it.userInfo.map { ui -> assertEquals("+1-201-555-0123", ui, "User info should be +1-201-555-0123") }
+
             assertEquals(
                     Some("pp22"),
                     it.uriParameters["postd"],

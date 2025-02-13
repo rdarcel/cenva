@@ -35,6 +35,6 @@ class SipMethodParser : ISipParserProvider<SipMethod> {
      * @return the string representation of the SipMethod
      */
     override fun toString(obj: SipMethod): String {
-        return obj.toString()
+        return obj.method.toString()
     }
 }
