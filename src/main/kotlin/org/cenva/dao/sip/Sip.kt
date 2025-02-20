@@ -273,11 +273,30 @@ val body : List<String>){
          * @return an option of an error 
          */
         fun preBuild():Option<SipParseError>{
+        
+            if (!this::_sipVersion.isInitialized) {
+                errors.add(SipParseError.MissingField("Missing mandatory field: sipVersion"))
+            }
+            if (!this::_via.isInitialized) {
+                errors.add(SipParseError.MissingField("Missing mandatory field: via"))
+            }
+            if (this._maxForwards < 0) {
+                errors.add(SipParseError.MissingField("Missing mandatory field: Max-forwards "+this._maxForwards))
+            }
+            if (!this::_from.isInitialized) {
+                errors.add(SipParseError.MissingField("Missing mandatory field: from"))
+            }
+            if (!this::_to.isInitialized) {
+                errors.add(SipParseError.MissingField("Missing mandatory field: to"))
+            }
+            if (!this::_callId.isInitialized) {
+                errors.add(SipParseError.MissingField("Missing mandatory field: callId"))
+            }
+            if (!this::_cSeq.isInitialized) {
+                errors.add(SipParseError.MissingField("Missing mandatory field: cSeq"))
+            }
             if(errors.isNotEmpty()){
                 return if(errors.size > 1) Some(SipParseError.MultipleError(errors)) else Some(errors[0])
-            }
-            if(!(this::_sipVersion.isInitialized && this::_via.isInitialized && this._maxForwards >= 0 && this::_from.isInitialized && this::_to.isInitialized && this::_callId.isInitialized && this::_cSeq.isInitialized)){
-                return Some(SipParseError.MissingField("Missing mandatory field in the SIP message"))
             }
             return None
         }
@@ -361,13 +380,19 @@ class SipRequest(
          * @return the SipRequest or an error
          */
         fun build(): Either<SipParseError, SipRequest> {
-            val preBuildError = this.preBuild()
-            if(preBuildError.isSome()){
-                return Either.Left(preBuildError.getOrElse({SipParseError.UnknownError("Unknown error")}))
+            this.preBuild()
+  
+            if(!this::_sipMethod.isInitialized){
+                errors.add(SipParseError.MissingField("Missing mandatory field in the SIP request (method)"))
+            } 
+            if(!this::_uri.isInitialized){
+                errors.add(SipParseError.MissingField("Missing mandatory field in the SIP request (uri)"))
             }
-            if(this::_sipMethod.isInitialized || this::_uri.isInitialized){
-                return Either.Left(SipParseError.MissingField("Missing mandatory field in the SIP request (method or uri)"))
+            //If there are some errors return an aggregated error
+            if(errors.isNotEmpty()){
+                return Either.Left(SipParseError.MultipleError(errors))
             }
+
             return Either.Right(SipRequest(_sipMethod, _uri, _sipVersion, _via, _maxForwards, _from, _to, _callId, _cSeq, _contact.getOrElse { listOf() }, _contentTypeHeader, _contentLength, _headers, _body.getOrElse { listOf() }))
         }
     
@@ -393,7 +418,7 @@ class SipRequest(
  */
 class SipResponse(
     val statusCode: Int,
-    val reasonPhrase: String,
+    val reasonPhrase: Option<String>,
     sipVersion: SipVersion,
     via: List<ViaHeader>,
     maxForwards: Int,
@@ -420,7 +445,7 @@ class SipResponse(
         /**
          * Reason phrase
          */
-        protected lateinit var _reasonPhrase: String
+        protected var _reasonPhrase: Option<String> = None
 
         /**
          * Set the status code
@@ -432,19 +457,26 @@ class SipResponse(
          * Set the reason phrase
          * @param reasonPhrase the reason phrase or an error
          */
-        fun reasonPhrase(reasonPhrase: Either<SipParseError, String>) = reasonPhrase.fold({errors.add(it)},{_reasonPhrase = it})
+        fun reasonPhrase(reasonPhrase: Either<SipParseError, String>) = reasonPhrase.fold({errors.add(it)},{_reasonPhrase = Some(it)})
 
         /**
          * Build the SipResponse
          * @return the SipResponse or an error
          */
         fun build(): Either<SipParseError, SipResponse> {
-            val preBuildError = this.preBuild()
-            if(preBuildError.isSome()){
-                return Either.Left(preBuildError.getOrElse({SipParseError.UnknownError("Unknown error")}))
+            this.preBuild()
+
+            if(this._statusCode < 0){
+                errors.add(SipParseError.MissingField("Missing mandatory field in the SIP response (status code)"))
             }
-            if(this._statusCode < 0 || this::_reasonPhrase.isInitialized){
-                return Either.Left(SipParseError.MissingField("Missing mandatory field in the SIP response (status code or reason phrase)"))
+            /**
+            if(!this::_reasonPhrase.isInitialized){
+                errors.add(SipParseError.MissingField("Missing mandatory field in the SIP response (reason phrase)"))
+            }**/
+
+            //If there are some errors return an aggregated error
+            if(errors.isNotEmpty()){
+                return Either.Left(SipParseError.MultipleError(errors))
             }
             return Either.Right(SipResponse(_statusCode, _reasonPhrase, _sipVersion, _via, _maxForwards, _from, _to, _callId, _cSeq, _contact.getOrElse { listOf() }, _contentTypeHeader, _contentLength, _headers, _body.getOrElse { listOf() }))
         }

@@ -131,6 +131,7 @@ class SipParserService(
                 "Via", "v" -> values.forEach { value -> builder.via(viaParser.parse(value)) }
                 "Content-Type", "c" -> builder.contentType(contentTypeParser.parse(values[0]))
                 "Content-Length", "l" -> builder.contentLength(parseContentLenght(values[0]))
+                "Max-Forwards" -> builder.maxForwards(parseMaxForwards(values[0]))
                 "Contact" -> values.forEach{ value -> builder.contact(contactParser.parse(value))}
                 else -> values.forEach{ value -> builder.header(name, value)}
                
@@ -165,6 +166,8 @@ class SipParserService(
         builder.statusCode(parseStatusCode(statusCode))
         builder.reasonPhrase(Either.Right(reasonPhrase))
 
+        val psc = parseStatusCode(statusCode)
+
         //Treat the headers
         headers.forEach{ (name,values) ->
             when(name) {
@@ -175,6 +178,7 @@ class SipParserService(
                 "Via", "v" -> values.forEach { value -> builder.via(viaParser.parse(value)) }
                 "Content-Type", "c" -> builder.contentType(contentTypeParser.parse(values[0]))
                 "Content-Length", "l" -> builder.contentLength(parseContentLenght(values[0]))
+                "Max-Forwards" -> builder.maxForwards(parseMaxForwards(values[0]))
                 "Contact" -> values.forEach{ value -> builder.contact(contactParser.parse(value))}
                 else -> values.forEach{ value -> builder.header(name, value)}
             }
@@ -199,13 +203,28 @@ class SipParserService(
         }
     }
 
+        /**
+     * Parse a status code
+     */
+    private fun parseMaxForwards(maxForwards: String): Either<SipParseError, Int> {
+        return try {
+            val max = maxForwards.toInt()
+            if(max >= 0 ) 
+                Either.Right(max)
+            else 
+                Either.Left(SipParseError.InvalidFormat("Invalid Max-forwards $maxForwards"))
+        } catch (e: Exception) {
+            Either.Left(SipParseError.InvalidFormat("Invalid Max-forwards: $maxForwards"))
+        }
+    }
+
     /**
      * Parse a content-lenght
      */
     private fun parseContentLenght(lenght:String): Either<SipParseError, Int> {
         return try {
             val length = lenght.toInt()
-            if(length > 0) 
+            if(length >= 0) 
                 Either.Right(lenght.toInt())
             else 
                 Either.Left(SipParseError.InvalidFormat("Invalid content length: $lenght"))
@@ -283,7 +302,90 @@ class SipParserService(
      * @return the string representation of the message
      */
     fun toString(sipMessage: SipMessage): String {
-        return ""
+        val sb = StringBuilder()
+
+        when (sipMessage) {
+            is SipRequest -> {
+                // First line for request
+                sb.append(sipMessage.method.method)
+                sb.append(" ")
+                sb.append(sipUriParser.toString(sipMessage.uri))
+                sb.append(" SIP/")
+                sb.append(SIP_VERSION)
+                sb.append("\r\n")
+            }
+            is SipResponse -> {
+                // First line for response
+                sb.append("SIP/")
+                sb.append(SIP_VERSION)
+                sb.append(" ")
+                sb.append(sipMessage.statusCode)
+                sb.append(" ")
+                sb.append(sipMessage.reasonPhrase)
+                sb.append("\r\n")
+            }
+        }
+
+        // Headers
+        sipMessage.via.forEach { via -> 
+            sb.append("Via: ")
+            sb.append(viaParser.toString(via))
+            sb.append("\r\n")
+        }
+
+        sb.append("From: ")
+        sb.append(fromParser.toString(sipMessage.from))
+        sb.append("\r\n")
+
+        sb.append("To: ")
+        sb.append(toParser.toString(sipMessage.to))
+        sb.append("\r\n")
+
+        sb.append("Call-ID: ")
+        sb.append(callIdParser.toString(sipMessage.callId))
+        sb.append("\r\n")
+
+        sb.append("CSeq: ")
+        sb.append(cSeqParser.toString(sipMessage.cSeq))
+        sb.append("\r\n")
+
+        sipMessage.contact.forEach { contact ->
+            sb.append("Contact: ")
+            sb.append(contactParser.toString(contact))
+            sb.append("\r\n")
+        }
+
+        sipMessage.contentTypeHeader.map { contentType ->
+            sb.append("Content-Type: ")
+            sb.append(contentTypeParser.toString(contentType))
+            sb.append("\r\n")
+        }
+
+        sipMessage.contentLength.map { length ->
+            sb.append("Content-Length: ")
+            sb.append(length)
+            sb.append("\r\n")
+        }
+
+        // Additional headers
+        sipMessage.headers.forEach { (name, values) ->
+            values.forEach { value ->
+                sb.append(name)
+                sb.append(": ")
+                sb.append(value)
+                sb.append("\r\n")
+            }
+        }
+
+        // Empty line separator
+        sb.append("\r\n")
+
+        // Body
+        if (sipMessage.body.isNotEmpty()) {
+            sb.append(sipMessage.body.joinToString("\n"))
+        }
+
+        return sb.toString()
     }
 
    

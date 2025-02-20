@@ -37,7 +37,7 @@ class SipUriParser(val allowMail: Boolean = false) : ISipParserProvider<SipUri> 
         /** 
          * Regex for TEL URI parameters
          */
-        private val TEL_PARAM_REGEX = """;([^=]+)(?:=(.+))?""".toRegex()
+        private val TEL_PARAM_REGEX = """([^=]+)(?:=(.+))?""".toRegex()
 
         /**
          * Regex for SIP URI
