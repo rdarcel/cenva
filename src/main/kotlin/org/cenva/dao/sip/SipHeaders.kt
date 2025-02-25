@@ -126,3 +126,24 @@ data class ContentTypeHeader(
     val parameters: Map<String, Option<String>>
 ) : SipObject()
 
+/**
+ * Represents a History-Info header entry as defined in RFC 7044
+ * @param uri The SIP URI for this history entry
+ * @param index The hierarchical index of this entry (e.g., "1", "1.1", "2")
+ * @param rc Optional reason code parameter
+ * @param parameters Other optional parameters
+ */
+data class HistoryInfoEntry(
+    val uri: SipUri,
+    val index: String,
+    val rc: Option<String>,
+    val parameters: Map<String, Option<String>>
+) : SipObject()
+
+/**
+ * Represents a complete History-Info header
+ * @param entries The list of history entries in order
+ */
+data class HistoryInfoHeader(
+    val entries: List<HistoryInfoEntry>
+) : SipObject()
