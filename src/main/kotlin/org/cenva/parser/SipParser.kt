@@ -5,6 +5,7 @@ import arrow.core.Either
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
+import arrow.core.raise.catch
 import jakarta.enterprise.context.ApplicationScoped
 
 import org.cenva.dao.sip.*
@@ -12,8 +13,14 @@ import org.cenva.dao.sip.*
 
 
 import org.jboss.logging.Logger;
+import kotlin.collections.getOrNull
 
 
+
+/**
+ * Type alias for validators
+ */
+typealias HeaderValidator<T> = (T,String) -> Option<SipParseError>
 
 /**
  * SIP parser Bean
@@ -32,6 +39,8 @@ class SipParserService(
     private val contactParser: ContactParser = ContactParser(nameAddrParser)
 
 ) {
+
+  
 
     companion object {
 
@@ -64,6 +73,102 @@ class SipParserService(
          * Logger
          */
         private val log = Logger.getLogger("SipParserService") 
+
+
+  
+        /**
+         * Validator for a SIP header check min value
+         * @param min the minimum value
+         * @return the validator function
+         */
+        private fun min(min:Int) : HeaderValidator<Int> {
+            return { value,headerName -> if(value < min) Some(SipParseError.InvalidFormat("Header $headerName should be higher than $min")) else None }
+        }
+
+        /**
+         * Validator for a SIP header check max value
+         * @param max the maximum value
+         * @return the validator function
+         */
+        private fun max(max:Int) : HeaderValidator<Int> {
+            return { value,headerName -> if(value > max) Some(SipParseError.InvalidFormat("Header $headerName should be smaller than: $max")) else None }
+        }
+
+   
+
+        /**
+         * Validator for a SIP header check if the value is in a list
+         * @param list the list of allowed values
+         * @return the validator function
+         */
+        private fun match(regex: String) : HeaderValidator<String> {
+            return { value,headerName -> if(Regex(regex).containsMatchIn(value)) None else Some(SipParseError.InvalidFormat("Header $headerName should match Regex $regex")) }
+        }
+
+
+        /**
+         * Parse a string value & do the validation
+         * @param value the value to parse
+         * @param headerName the name of the header
+         * @param validators the list of validators to apply
+         * @return the parsed value or an error if the value is invalid
+         */
+        private fun parseString(value: String, headerName:String, validators: Array<HeaderValidator<String>>): Either<SipParseError, String> {
+            val tvalue = value.trim()
+            val listErrors : List<SipParseError> = validators.mapNotNull { validator -> validator(tvalue,headerName).getOrNull()}
+            if(listErrors.isNotEmpty())
+                return Either.Left(SipParseError.MultipleError(listErrors))
+            else
+                return Either.Right(tvalue)
+        }
+
+        /**
+         * Parse an integer value & do the validation
+         * @param value the value to parse
+         * @param headerName the name of the header
+         * @param validators the list of validators to apply
+         * @return the parsed value or an error if the value is invalid
+         */
+        private fun parseInt(value: String, headerName: String,validators: Array<HeaderValidator<Int>>): Either<SipParseError, Int> {
+            try{
+                val intValue = value.toInt()
+                val listErrors : List<SipParseError> = validators.mapNotNull { validator -> validator(intValue,headerName).getOrNull()}
+                if(listErrors.isNotEmpty())
+                    return Either.Left(SipParseError.MultipleError(listErrors))
+                else
+                    return Either.Right(intValue)
+            }
+            catch(e: Exception){
+                return Either.Left(SipParseError.InvalidFormat("Invalid integer value: $value"))
+            }
+          
+        }
+
+        /**
+         * Parse a string array value & do the validation
+         * @param value the value to parse
+         * @param separator the separator to split the values
+         * @param headerName the name of the header
+         * @param validators the list of validators to apply
+         * @return the parsed value or an error if the value is invalid
+         */
+        private fun parseStringArray(value: String, separator: String, headerName:String, validators: Array<HeaderValidator<String>>): Either<SipParseError, List<String>> {
+            val values = value.split(separator)
+            val listErrors : List<SipParseError> = listOf()
+            
+            values.forEach { 
+                val res = parseString(it,headerName,validators)
+                when(res){
+                    is Either.Left -> listErrors.plus(res.value)
+                    is Either.Right -> {}
+                }
+            }
+            if(listErrors.isNotEmpty())
+                return Either.Left(SipParseError.MultipleError(listErrors))
+            else
+                return Either.Right(values)
+    
+        }
 
    
 
@@ -121,6 +226,8 @@ class SipParserService(
         builder.uri(sipUriParser.parse(uriS))
         builder.sipVersion(parseSipVersion(version))
 
+      
+
         //Treat the headers
         headers.forEach { (name, values) ->
             when (name) {
@@ -130,9 +237,17 @@ class SipParserService(
                 "CSeq" -> builder.cSeq(cSeqParser.parse(values[0]))
                 "Via", "v" -> values.forEach { value -> builder.via(viaParser.parse(value)) }
                 "Content-Type", "c" -> builder.contentType(contentTypeParser.parse(values[0]))
-                "Content-Length", "l" -> builder.contentLength(parseContentLenght(values[0]))
+                "Content-Length", "l" -> builder.contentLength(parseInt(values[0], name, arrayOf(min(0))))
                 "Max-Forwards" -> builder.maxForwards(parseMaxForwards(values[0]))
                 "Contact" -> values.forEach{ value -> builder.contact(contactParser.parse(value))}
+                "Expires" -> values.forEach{ value -> builder.expires(parseInt(value, name, arrayOf(min(0))))}
+                "Min-Expires" -> values.forEach{ value -> builder.minExpires(parseInt(value, name, arrayOf(min(0))))}
+                "User-Agent" -> values.forEach{ value -> builder.userAgent(parseString(value, name, arrayOf()))}
+                "Allow" -> values.forEach{ value -> builder.allow(parseStringArray(value, ",", name, arrayOf()))}
+                "Server" -> values.forEach{ value -> builder.server(parseString(value, name, arrayOf()))}
+                "Require" -> values.forEach{ value -> builder.require(parseStringArray(value, ",", name, arrayOf()))}
+                "Supported" -> values.forEach{ value -> builder.supported(parseStringArray(value, ",", name, arrayOf()))}
+                
                 else -> values.forEach{ value -> builder.header(name, value)}
                
             }
@@ -180,6 +295,14 @@ class SipParserService(
                 "Content-Length", "l" -> builder.contentLength(parseContentLenght(values[0]))
                 "Max-Forwards" -> builder.maxForwards(parseMaxForwards(values[0]))
                 "Contact" -> values.forEach{ value -> builder.contact(contactParser.parse(value))}
+                "Expires" -> values.forEach{ value -> builder.expires(parseInt(value, name, arrayOf(min(0))))}
+                "Min-Expires" -> values.forEach{ value -> builder.minExpires(parseInt(value, name, arrayOf(min(0))))}
+                "User-Agent" -> values.forEach{ value -> builder.userAgent(parseString(value, name, arrayOf()))}
+                "Allow" -> values.forEach{ value -> builder.allow(parseStringArray(value, ",", name, arrayOf()))}
+                "Server" -> values.forEach{ value -> builder.server(parseString(value, name, arrayOf()))}
+                "Require" -> values.forEach{ value -> builder.require(parseStringArray(value, ",", name, arrayOf()))}
+                "Supported" -> values.forEach{ value -> builder.supported(parseStringArray(value, ",", name, arrayOf()))}
+
                 else -> values.forEach{ value -> builder.header(name, value)}
             }
 
@@ -297,6 +420,20 @@ class SipParserService(
     }
 
     /**
+     *  Concatenate the headers to a string
+     * @param headerName the name of the header 
+     * @param headerValue the value of the header
+     * @param sb the string builder
+     */
+    private fun headerToString(headerName : String, headerValue: String, sb: StringBuilder){
+        sb.append(headerName)
+        sb.append(": ")
+        sb.append(headerValue)
+        sb.append("\r\n")
+    }
+
+
+    /**
      * Convert a SIP message to a string
      * @param sipMessage the message to convert
      * @return the string representation of the message
@@ -326,46 +463,60 @@ class SipParserService(
             }
         }
 
-        // Headers
+        // Mandatory Headers
         sipMessage.via.forEach { via -> 
-            sb.append("Via: ")
-            sb.append(viaParser.toString(via))
-            sb.append("\r\n")
+            headerToString("Via", viaParser.toString(via), sb)
         }
 
-        sb.append("From: ")
-        sb.append(fromParser.toString(sipMessage.from))
-        sb.append("\r\n")
-
-        sb.append("To: ")
-        sb.append(toParser.toString(sipMessage.to))
-        sb.append("\r\n")
-
-        sb.append("Call-ID: ")
-        sb.append(callIdParser.toString(sipMessage.callId))
-        sb.append("\r\n")
-
-        sb.append("CSeq: ")
-        sb.append(cSeqParser.toString(sipMessage.cSeq))
-        sb.append("\r\n")
-
+        headerToString("From", fromParser.toString(sipMessage.from), sb)
+        headerToString("To", toParser.toString(sipMessage.to), sb)
+        headerToString("Call-ID", callIdParser.toString(sipMessage.callId), sb)
+        headerToString("CSeq", cSeqParser.toString(sipMessage.cSeq), sb)
+        headerToString("Max-Forwards", sipMessage.maxForwards.toString(), sb)
+        
         sipMessage.contact.forEach { contact ->
-            sb.append("Contact: ")
-            sb.append(contactParser.toString(contact))
-            sb.append("\r\n")
+            headerToString("Contact", contactParser.toString(contact), sb)
         }
 
+
+        // Optional Headers
         sipMessage.contentTypeHeader.map { contentType ->
-            sb.append("Content-Type: ")
-            sb.append(contentTypeParser.toString(contentType))
-            sb.append("\r\n")
+            headerToString("Content-Type", contentTypeParser.toString(contentType), sb)
         }
 
         sipMessage.contentLength.map { length ->
-            sb.append("Content-Length: ")
-            sb.append(length)
-            sb.append("\r\n")
+            headerToString("Content-Length", length.toString(), sb)
         }
+
+        sipMessage.expires.map { expires ->
+            headerToString("Expires", expires.toString(), sb)
+        }
+
+        sipMessage.minExpires.map { minExpires ->
+            headerToString("Min-Expires", minExpires.toString(), sb)
+        }
+
+        sipMessage.userAgent.map { userAgent ->
+            headerToString("User-Agent", userAgent, sb)
+        }
+
+        sipMessage.allow.map { allow ->
+            headerToString("Allow", allow.joinToString(", "), sb)
+        }
+
+        sipMessage.server.map { server ->
+            headerToString("Server", server, sb)
+        }
+
+        sipMessage.require.map { require ->
+            headerToString("Require", require.joinToString(", "), sb)
+        }
+
+        sipMessage.supported.map { supported ->
+            headerToString("Supported", supported.joinToString(", "), sb)
+        }
+
+ 
 
         // Additional headers
         sipMessage.headers.forEach { (name, values) ->

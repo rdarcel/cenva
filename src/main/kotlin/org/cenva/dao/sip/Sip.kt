@@ -103,6 +103,13 @@ val cSeq: CSeqHeader,
 val contact: List<ContactHeader>,
 val contentTypeHeader: Option<ContentTypeHeader>,
 val contentLength: Option<Int>,
+val expires: Option<Int>,
+val minExpires: Option<Int>,
+val supported: Option<List<String>>,
+val allow: Option<List<String>>,
+val userAgent: Option<String>,
+val require: Option<List<String>>,
+val server: Option<String>,
 val headers: Map<String, List<String>>,
 val body : List<String>){
     abstract class SipMessageBuilder(){
@@ -173,6 +180,41 @@ val body : List<String>){
         protected val errors: MutableList<SipParseError> = mutableListOf()
 
         /**
+         * Expire header
+         */
+        protected var _expires: Option<Int> = None
+
+        /**
+         * Min-Expire header
+         */
+        protected var _minExpires: Option<Int> = None
+
+        /**
+         * Supported header
+         */
+        protected var _supported: Option<List<String>> = None
+
+        /**
+         * Allow header
+         */
+        protected var _allow: Option<List<String>> = None
+
+        /**
+         * User-Agent header
+         */
+        protected var _userAgent: Option<String> = None
+
+        /**
+         * Require header
+         */
+        protected var _require: Option<List<String>> = None
+
+        /**
+         * Server header
+         */
+        protected var _server: Option<String> = None
+
+        /**
          * Set the sip version
          * @param sipVersion the sip version or an error
          */
@@ -231,6 +273,48 @@ val body : List<String>){
          * @param contentLength the content length or an error
          */
         fun contentLength(contentLength: Either<SipParseError, Int>) = contentLength.fold({_contentLength = None; errors.add(it)},{_contentLength = Some(it)})
+
+        /**
+         * Set the expires header
+         * @param expires the expires header or an error
+         */
+        fun expires(expires: Either<SipParseError, Int>) = expires.fold({_expires = None; errors.add(it)},{_expires = Some(it)})
+
+        /**
+         * Set the min expire header
+         * @param minExpires the min expire header or an error
+         */
+        fun minExpires(minExpires: Either<SipParseError, Int>) = minExpires.fold({_minExpires = None; errors.add(it)},{_minExpires = Some(it)})
+
+        /**
+         * Set the supported header
+         * @param supported the supported header or an error
+         */
+        fun supported(supported: Either<SipParseError, List<String>>) = supported.fold({_supported = None; errors.add(it)},{_supported = Some(it)})
+
+        /**
+         * Set the allow header
+         * @param allow the allow header or an error
+         */
+        fun allow(allow: Either<SipParseError, List<String>>) = allow.fold({_allow = None; errors.add(it)},{_allow = Some(it)})
+
+        /**
+         * Set the user agent
+         * @param userAgent the user agent or an error
+         */
+        fun userAgent(userAgent: Either<SipParseError, String>) = userAgent.fold({_userAgent = None; errors.add(it)},{_userAgent = Some(it)})
+
+        /**
+         * Set the require header
+         * @param require the require header or an error
+         */
+        fun require(require: Either<SipParseError, List<String>>) = require.fold({_require = None; errors.add(it)},{_require = Some(it)})
+
+        /**
+         * Set the server header
+         * @param server the server header or an error
+         */
+        fun server(server: Either<SipParseError, String>) = server.fold({_server = None; errors.add(it)},{_server = Some(it)})
 
         /**
          * Add an headers
@@ -345,9 +429,16 @@ class SipRequest(
     contact: List<ContactHeader>,
     contentTypeHeader: Option<ContentTypeHeader>,
     contentLength: Option<Int>,
+    expires: Option<Int>,
+    minExpires: Option<Int>,
+    supported: Option<List<String>>,
+    allow: Option<List<String>>,
+    userAgent: Option<String>,
+    require: Option<List<String>>,
+    server: Option<String>,
     headers: Map<String, List<String>>,
     body : List<String>
-):SipMessage(sipVersion, via, maxForwards, from, to, callId, cSeq, contact, contentTypeHeader, contentLength, headers, body){
+):SipMessage(sipVersion, via, maxForwards, from, to, callId, cSeq, contact, contentTypeHeader, contentLength, expires, minExpires, supported, allow, userAgent, require, server, headers, body){
  
     /**
      * SIP Request Builder to build from a decomposed Sip request
@@ -393,8 +484,8 @@ class SipRequest(
                 return Either.Left(SipParseError.MultipleError(errors))
             }
 
-            return Either.Right(SipRequest(_sipMethod, _uri, _sipVersion, _via, _maxForwards, _from, _to, _callId, _cSeq, _contact.getOrElse { listOf() }, _contentTypeHeader, _contentLength, _headers, _body.getOrElse { listOf() }))
-        }
+            return Either.Right(SipRequest(_sipMethod, _uri, _sipVersion, _via, _maxForwards, _from, _to, _callId, _cSeq, _contact.getOrElse { listOf() }, _contentTypeHeader, _contentLength, _expires, _minExpires, _supported, _allow, _userAgent, _require, _server, _headers, _body.getOrElse { listOf() }))
+    }
     
     }
 }
@@ -429,9 +520,16 @@ class SipResponse(
     contact: List<ContactHeader>,
     contentTypeHeader: Option<ContentTypeHeader>,
     contentLength: Option<Int>,
+    expires: Option<Int>,
+    minExpires: Option<Int>,
+    supported: Option<List<String>>,
+    allow: Option<List<String>>,
+    userAgent: Option<String>,
+    require: Option<List<String>>,
+    server: Option<String>,
     headers: Map<String, List<String>>,
     body : List<String>
-):SipMessage(sipVersion, via, maxForwards, from, to, callId, cSeq, contact, contentTypeHeader, contentLength, headers, body){
+):SipMessage(sipVersion, via, maxForwards, from, to, callId, cSeq, contact, contentTypeHeader, contentLength, expires, minExpires, supported, allow, userAgent, require, server, headers, body){
 
     /**
      * SIP Response Builder
@@ -469,16 +567,13 @@ class SipResponse(
             if(this._statusCode < 0){
                 errors.add(SipParseError.MissingField("Missing mandatory field in the SIP response (status code)"))
             }
-            /**
-            if(!this::_reasonPhrase.isInitialized){
-                errors.add(SipParseError.MissingField("Missing mandatory field in the SIP response (reason phrase)"))
-            }**/
 
             //If there are some errors return an aggregated error
             if(errors.isNotEmpty()){
                 return Either.Left(SipParseError.MultipleError(errors))
             }
-            return Either.Right(SipResponse(_statusCode, _reasonPhrase, _sipVersion, _via, _maxForwards, _from, _to, _callId, _cSeq, _contact.getOrElse { listOf() }, _contentTypeHeader, _contentLength, _headers, _body.getOrElse { listOf() }))
+
+            return Either.Right(SipResponse(_statusCode, _reasonPhrase, _sipVersion, _via, _maxForwards, _from, _to, _callId, _cSeq, _contact.getOrElse { listOf() }, _contentTypeHeader, _contentLength, _expires, _minExpires, _supported, _allow, _userAgent, _require, _server, _headers, _body.getOrElse { listOf() }))
         }
     }
 }
